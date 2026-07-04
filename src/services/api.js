@@ -201,6 +201,13 @@ export const authService = {
   }
 }
 
+const withTimeout = (promise, ms = 4000) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), ms))
+  ])
+}
+
 // ─── USER SERVICE ────────────────────────────────────────────────────────────
 export const userService = {
   async getProfile(userId) {
@@ -216,7 +223,7 @@ export const userService = {
       return { id: userId, email: 'demo@test.com', full_name: 'Demo Citizen', role: 'citizen' }
     }
 
-    const snap = await getDoc(doc(db, 'users', userId))
+    const snap = await withTimeout(getDoc(doc(db, 'users', userId)))
     if (!snap.exists()) throw new Error('Profile not found')
     return snap.data()
   },
@@ -240,8 +247,8 @@ export const userService = {
     }
 
     const ref = doc(db, 'users', userId)
-    await setDoc(ref, updates, { merge: true })
-    const updated = await getDoc(ref)
+    await withTimeout(setDoc(ref, updates, { merge: true }))
+    const updated = await withTimeout(getDoc(ref))
     return updated.data()
   },
 
