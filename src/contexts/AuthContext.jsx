@@ -11,13 +11,30 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchProfile = useCallback(async (userId) => {
+  const fetchProfile = useCallback(async (userId, fbUser) => {
     try {
       const data = await userService.getProfile(userId)
       setProfile(data)
       return data
     } catch (e) {
-      console.warn('Failed to fetch profile:', e)
+      console.warn('Profile not found, creating default profile:', e)
+      if (fbUser) {
+        try {
+          const defaultProfile = {
+            id: userId,
+            email: fbUser.email,
+            full_name: fbUser.displayName || 'Citizen User',
+            role: ROLES.CITIZEN,
+            constituency_id: null,
+            created_at: new Date().toISOString()
+          }
+          await userService.updateProfile(userId, defaultProfile)
+          setProfile(defaultProfile)
+          return defaultProfile
+        } catch (createErr) {
+          console.error('Failed to create default profile:', createErr)
+        }
+      }
       return null
     }
   }, [])
@@ -54,7 +71,7 @@ export function AuthProvider({ children }) {
       if (!mounted) return
       if (fbUser) {
         setUser(fbUser)
-        await fetchProfile(fbUser.uid)
+        await fetchProfile(fbUser.uid, fbUser)
       } else {
         setUser(null)
         setProfile(null)

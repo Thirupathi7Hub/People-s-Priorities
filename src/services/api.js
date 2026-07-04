@@ -240,7 +240,7 @@ export const userService = {
     }
 
     const ref = doc(db, 'users', userId)
-    await updateDoc(ref, updates)
+    await setDoc(ref, updates, { merge: true })
     const updated = await getDoc(ref)
     return updated.data()
   },
