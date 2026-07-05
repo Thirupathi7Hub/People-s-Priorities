@@ -11,40 +11,7 @@ import { useAuth } from '../../contexts/AuthContext'
 
 import { complaintService } from '../../services/api'
 
-const mockComplaints = [
-  { id: 1, title: 'Deep pothole on MG Road near Chandni Chowk', status: 'in_progress', priority: 'high', category: 'Roads & Infrastructure', votes: 45, comments: 12, created_at: '2024-01-15T10:00:00Z', citizen: { full_name: 'Priya Sharma', avatar_url: null }, location: 'Chandni Chowk, Delhi' },
-  { id: 2, title: 'Water supply disruption in Sector 4 for 3 days', status: 'open', priority: 'critical', category: 'Water Supply', votes: 89, comments: 23, created_at: '2024-01-14T14:00:00Z', citizen: { full_name: 'Rohit Mehta', avatar_url: null }, location: 'Sector 4, Noida' },
-  { id: 3, title: 'Street light malfunction on Park Avenue', status: 'pending', priority: 'medium', category: 'Electricity', votes: 12, comments: 3, created_at: '2024-01-13T09:00:00Z', citizen: { full_name: 'Anita Singh', avatar_url: null }, location: 'Park Avenue, Mumbai' },
-  { id: 4, title: 'Garbage collection missed for 5 consecutive days', status: 'resolved', priority: 'high', category: 'Sanitation', votes: 67, comments: 18, created_at: '2024-01-10T11:00:00Z', citizen: { full_name: 'Arjun Patel', avatar_url: null }, location: 'Bandra West, Mumbai' },
-  { id: 5, title: 'Damaged footpath near government school', status: 'open', priority: 'low', category: 'Roads & Infrastructure', votes: 28, comments: 7, created_at: '2024-01-09T08:00:00Z', citizen: { full_name: 'Meera Iyer', avatar_url: null }, location: 'T Nagar, Chennai' },
-  { id: 6, title: 'Sewage overflow on Main Street', status: 'pending', priority: 'critical', category: 'Sanitation', votes: 134, comments: 45, created_at: '2024-01-08T16:00:00Z', citizen: { full_name: 'Rahul Gupta', avatar_url: null }, location: 'Connaught Place, Delhi' },
-]
 
-const mockComplaint = {
-  id: 1,
-  title: 'Deep pothole on MG Road causing accidents',
-  description: 'There is a very deep pothole near the bus stop on MG Road which has been causing accidents and damaging vehicles. Multiple bikes and autos have been affected. Despite multiple complaints to the local municipal office, no action has been taken in the last 3 weeks. The pothole is approximately 1 foot deep and 2 feet wide. It becomes extremely dangerous during night hours and rainy season.',
-  status: 'in_progress',
-  priority: 'high',
-  category: 'Roads & Infrastructure',
-  location: 'MG Road, near Bus Stop 14, New Delhi - 110001',
-  location_lat: 28.6304,
-  location_lng: 77.2177,
-  created_at: '2024-01-10T10:00:00Z',
-  updated_at: '2024-01-15T14:00:00Z',
-  citizen: { full_name: 'Priya Sharma', avatar_url: null },
-  votes: { up: 89, down: 3 },
-  comments: [
-    { id: 1, content: 'This has been a problem for months. The NDMC is completely unresponsive.', user: { full_name: 'Rohit Kumar', avatar_url: null }, created_at: '2024-01-11T09:00:00Z' },
-    { id: 2, content: 'I agree, my vehicle was also damaged. We need urgent action.', user: { full_name: 'Anita Singh', avatar_url: null }, created_at: '2024-01-12T11:00:00Z' },
-    { id: 3, content: 'Filed complaint on NDMC portal also but no response so far.', user: { full_name: 'Vivek Gupta', avatar_url: null }, created_at: '2024-01-13T14:00:00Z' },
-  ],
-  activity: [
-    { action: 'Complaint submitted', date: '2024-01-10T10:00:00Z', by: 'Priya Sharma', color: 'bg-blue-500' },
-    { action: 'Assigned to PWD Officer Mehta', date: '2024-01-11T09:00:00Z', by: 'System', color: 'bg-amber-500' },
-    { action: 'Status updated to In Progress', date: '2024-01-15T14:00:00Z', by: 'Officer Mehta', color: 'bg-primary-500' },
-  ],
-}
 
 export default function ComplaintDetailPage() {
   const { id } = useParams()
@@ -63,23 +30,6 @@ export default function ComplaintDetailPage() {
     setLoading(true)
     setError(null)
     
-    const isMockId = !isNaN(Number(id)) && Number(id) >= 1 && Number(id) <= 6
-    
-    if (isMockId) {
-      const matchedMock = mockComplaints.find(mc => mc.id === Number(id)) || mockComplaint
-      const fullMock = {
-        ...mockComplaint,
-        ...matchedMock,
-        id: matchedMock.id,
-      }
-      setComplaint(fullMock)
-      setComments(fullMock.comments || [])
-      setVotes(fullMock.votes || { up: matchedMock.votes || 0, down: 0 })
-      setActivity(fullMock.activity || [])
-      setLoading(false)
-      return
-    }
-
     complaintService.getById(id)
       .then(res => {
         if (!active) return

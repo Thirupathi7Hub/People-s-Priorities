@@ -12,18 +12,11 @@ import { formatRelativeTime } from '../../utils'
 import { CATEGORIES, COMPLAINT_STATUS } from '../../constants'
 import Avatar from '../../components/ui/Avatar'
 
-const mockComplaints = [
-  { id: 1, title: 'Deep pothole on MG Road near Chandni Chowk', status: 'in_progress', priority: 'high', category: 'Roads & Infrastructure', votes: 45, comments: 12, created_at: '2024-01-15T10:00:00Z', citizen: { full_name: 'Priya Sharma', avatar_url: null }, location: 'Chandni Chowk, Delhi' },
-  { id: 2, title: 'Water supply disruption in Sector 4 for 3 days', status: 'open', priority: 'critical', category: 'Water Supply', votes: 89, comments: 23, created_at: '2024-01-14T14:00:00Z', citizen: { full_name: 'Rohit Mehta', avatar_url: null }, location: 'Sector 4, Noida' },
-  { id: 3, title: 'Street light malfunction on Park Avenue', status: 'pending', priority: 'medium', category: 'Electricity', votes: 12, comments: 3, created_at: '2024-01-13T09:00:00Z', citizen: { full_name: 'Anita Singh', avatar_url: null }, location: 'Park Avenue, Mumbai' },
-  { id: 4, title: 'Garbage collection missed for 5 consecutive days', status: 'resolved', priority: 'high', category: 'Sanitation', votes: 67, comments: 18, created_at: '2024-01-10T11:00:00Z', citizen: { full_name: 'Arjun Patel', avatar_url: null }, location: 'Bandra West, Mumbai' },
-  { id: 5, title: 'Damaged footpath near government school', status: 'open', priority: 'low', category: 'Roads & Infrastructure', votes: 28, comments: 7, created_at: '2024-01-09T08:00:00Z', citizen: { full_name: 'Meera Iyer', avatar_url: null }, location: 'T Nagar, Chennai' },
-  { id: 6, title: 'Sewage overflow on Main Street', status: 'pending', priority: 'critical', category: 'Sanitation', votes: 134, comments: 45, created_at: '2024-01-08T16:00:00Z', citizen: { full_name: 'Rahul Gupta', avatar_url: null }, location: 'Connaught Place, Delhi' },
-]
+const mockComplaints = []
 
 export default function ComplaintsListPage({ role = 'citizen' }) {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [complaints, setComplaints] = useState(mockComplaints)
+  const [complaints, setComplaints] = useState([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '')
@@ -56,9 +49,7 @@ export default function ComplaintsListPage({ role = 'citizen' }) {
           location: c.location_text || 'Constituency Area'
         }))
         
-        // Exclude mock complaints with identical titles
-        const filteredMock = mockComplaints.filter(mc => !dbList.some(dc => dc.title === mc.title))
-        setComplaints([...dbList, ...filteredMock])
+        setComplaints(dbList)
       })
       .catch(err => {
         console.error('Failed to load live complaints:', err)
