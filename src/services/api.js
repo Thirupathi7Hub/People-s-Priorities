@@ -124,8 +124,57 @@ export const authService = {
       return { user: { uid: id, email }, profile: newDemoUser }
     }
 
-    const res = await signInWithEmailAndPassword(auth, email, password)
-    return res
+    try {
+      const res = await signInWithEmailAndPassword(auth, email, password)
+      return res
+    } catch (err) {
+      // Intercept and auto-provision demo accounts if they don't exist yet
+      const demoEmails = [
+        'citizen@priorities.gov.in',
+        'mp@priorities.gov.in',
+        'officer@priorities.gov.in',
+        'admin@priorities.gov.in'
+      ]
+      
+      if (
+        demoEmails.includes(email.toLowerCase()) && 
+        password === 'password123' &&
+        (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential')
+      ) {
+        console.log(`Auto-provisioning Firebase demo account: ${email}`)
+        try {
+          const res = await createUserWithEmailAndPassword(auth, email, password)
+          
+          const roleMap = {
+            'citizen@priorities.gov.in': 'citizen',
+            'mp@priorities.gov.in': 'mp',
+            'officer@priorities.gov.in': 'officer',
+            'admin@priorities.gov.in': 'admin'
+          }
+          const nameMap = {
+            'citizen@priorities.gov.in': 'Demo Citizen',
+            'mp@priorities.gov.in': 'MP / Minister',
+            'officer@priorities.gov.in': 'Government Officer',
+            'admin@priorities.gov.in': 'System Admin'
+          }
+          
+          const userProfile = {
+            id: res.user.uid,
+            email,
+            full_name: nameMap[email.toLowerCase()] || 'Demo User',
+            role: roleMap[email.toLowerCase()] || 'citizen',
+            created_at: new Date().toISOString(),
+          }
+          
+          await setDoc(doc(db, 'users', res.user.uid), userProfile)
+          return res
+        } catch (createErr) {
+          console.error('Failed to auto-provision demo account:', createErr)
+          throw err // throw original error if registration fails
+        }
+      }
+      throw err
+    }
   },
 
   async signInWithGoogle() {

@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
-import { Mail, Lock, Eye, EyeOff, Globe, Sparkles, UserCheck } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, Globe, Sparkles } from 'lucide-react'
 import { authService } from '../../services/api'
 import Button from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
@@ -15,12 +15,6 @@ const schema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 })
 
-const DEMO_ROLES = [
-  { name: 'Citizen', email: 'citizen@priorities.gov.in', role: 'citizen', emoji: '🇮🇳' },
-  { name: 'MP / Leader', email: 'mp@priorities.gov.in', role: 'mp', emoji: '🏛️' },
-  { name: 'Gov Officer', email: 'officer@priorities.gov.in', role: 'officer', emoji: '👔' },
-  { name: 'System Admin', email: 'admin@priorities.gov.in', role: 'admin', emoji: '⚙️' }
-]
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -50,22 +44,7 @@ export default function LoginPage() {
     }
   }
 
-  const handleDemoLogin = async (demo) => {
-    setError(null)
-    setLoading(true)
-    try {
-      // Prefill fields
-      setValue('email', demo.email)
-      setValue('password', 'password123')
-      
-      await authService.signIn({ email: demo.email, password: 'password123' })
-      navigate(`/dashboard/${demo.role}`)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }
+
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
@@ -116,32 +95,6 @@ export default function LoginPage() {
             <p className="text-sm text-[var(--text-secondary)]">
               Sign in to your People's Priorities account
             </p>
-          </div>
-
-          {/* Quick Demo Login Card */}
-          <div className="card p-5 mb-5 border border-dashed border-primary-200 dark:border-primary-900 bg-primary-50/20 dark:bg-primary-950/5">
-            <div className="flex items-center gap-2 mb-3">
-              <UserCheck className="w-4 h-4 text-primary-500" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
-                Quick Demo Login (Try Instantly)
-              </h2>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {DEMO_ROLES.map((demo) => (
-                <button
-                  key={demo.role}
-                  type="button"
-                  onClick={() => handleDemoLogin(demo)}
-                  className="flex items-center gap-2 p-2 rounded-xl text-left text-xs font-semibold bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-primary-500 hover:bg-primary-50/30 dark:hover:bg-primary-950/20 transition-all shadow-sm"
-                >
-                  <span className="text-base">{demo.emoji}</span>
-                  <div>
-                    <p style={{ color: 'var(--text-primary)' }} className="leading-none mb-0.5">{demo.name}</p>
-                    <p style={{ color: 'var(--text-muted)' }} className="text-[10px] font-normal leading-none">Click to Login</p>
-                  </div>
-                </button>
-              ))}
-            </div>
           </div>
 
           <div className="card p-6">
