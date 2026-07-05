@@ -297,8 +297,8 @@ export const complaintService = {
       return freshPayload
     }
 
-    const ref = await addDoc(collection(db, 'complaints'), freshPayload)
-    await updateDoc(ref, { id: ref.id })
+    const ref = await withTimeout(addDoc(collection(db, 'complaints'), freshPayload))
+    await withTimeout(updateDoc(ref, { id: ref.id }))
     return { ...freshPayload, id: ref.id }
   },
 
