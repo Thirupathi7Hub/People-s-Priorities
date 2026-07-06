@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ThumbsUp, ThumbsDown, MessageSquare, MapPin, Clock, Share2, Flag } from 'lucide-react'
-import { StatusBadge, PriorityBadge } from '../../components/ui/Badge'
+import { ThumbsUp, ThumbsDown, MessageSquare, MapPin, Clock, Share2, Flag, UserCheck, CheckCircle, FolderKanban, X } from 'lucide-react'
+import { StatusBadge, PriorityBadge, Badge } from '../../components/ui/Badge'
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import Avatar from '../../components/ui/Avatar'
 import Button from '../../components/ui/Button'
 import { formatDate, formatRelativeTime } from '../../utils'
 import { useAuth } from '../../contexts/AuthContext'
 
-import { complaintService } from '../../services/api'
+import { complaintService, userService } from '../../services/api'
 
 
 
 export default function ComplaintDetailPage() {
   const { id } = useParams()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [comment, setComment] = useState('')
   const [complaint, setComplaint] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -24,6 +24,16 @@ export default function ComplaintDetailPage() {
   const [votes, setVotes] = useState({ up: 0, down: 0 })
   const [submitting, setSubmitting] = useState(false)
   const [activity, setActivity] = useState([])
+
+  // MP / Solver Officer assignment and resolution states
+  const [officers, setOfficers] = useState([])
+  const [selectedOfficerId, setSelectedOfficerId] = useState('')
+  const [submittingAssignment, setSubmittingAssignment] = useState(false)
+
+  const [officerStatus, setOfficerStatus] = useState('in_progress')
+  const [resolutionNotes, setResolutionNotes] = useState('')
+  const [proofUrl, setProofUrl] = useState('')
+  const [submittingResolution, setSubmittingResolution] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -47,6 +57,10 @@ export default function ComplaintDetailPage() {
             location_lng: c.location_lng,
             created_at: c.created_at,
             updated_at: c.updated_at,
+            assigned_officer_id: c.assigned_officer_id || null,
+            assigned_officer_name: c.assigned_officer_name || null,
+            resolution_notes: c.resolution_notes || '',
+            proof_image_url: c.proof_image_url || null,
             citizen: {
               full_name: c.citizen_name || 'Citizen User',
               avatar_url: c.citizen_avatar || null
@@ -61,6 +75,10 @@ export default function ComplaintDetailPage() {
           setComments(formatted.comments)
           setVotes(formatted.votes)
           setActivity(formatted.activity)
+          
+          setOfficerStatus(formatted.status || 'in_progress')
+          setResolutionNotes(formatted.resolution_notes || '')
+          setProofUrl(formatted.proof_image_url || '')
         } else {
           setError('Complaint not found')
         }
@@ -77,6 +95,94 @@ export default function ComplaintDetailPage() {
       active = false
     }
   }, [id])
+
+  useEffect(() => {
+    if (profile?.role === 'mp' || profile?.role === 'admin') {
+      userService.getAllUsers({ role: 'officer' })
+        .then(res => {
+          setOfficers(res.data || [])
+        })
+        .catch(err => console.error('Failed to fetch solver officers:', err))
+    }
+  }, [profile])
+
+  const handleAssignOfficer = async () => {
+    if (!selectedOfficerId) return
+    setSubmittingAssignment(true)
+    try {
+      const officer = officers.find(o => o.id === selectedOfficerId)
+      if (!officer) return
+
+      const officerName = officer.full_name
+      const newActivity = [
+        ...activity,
+        {
+          action: `Assigned to Solver Officer ${officerName}`,
+          date: new Date().toISOString(),
+          by: profile?.full_name || 'MP / Leader',
+          color: 'bg-amber-500'
+        }
+      ]
+
+      const updates = {
+        assigned_officer_id: selectedOfficerId,
+        assigned_officer_name: officerName,
+        status: 'in_progress',
+        activity: newActivity
+      }
+
+      await complaintService.update(id, updates)
+      
+      setComplaint(prev => ({
+        ...prev,
+        ...updates
+      }))
+      setActivity(newActivity)
+      alert(`Successfully assigned complaint to ${officerName}`)
+    } catch (err) {
+      console.error('Failed to assign officer:', err)
+      alert('Failed to assign officer. Please try again.')
+    } finally {
+      setSubmittingAssignment(false)
+    }
+  }
+
+  const handleUpdateResolution = async () => {
+    setSubmittingResolution(true)
+    try {
+      const isResolved = officerStatus === 'resolved'
+      const newActivity = [
+        ...activity,
+        {
+          action: isResolved ? 'Marked as Resolved' : 'Status updated to In Progress',
+          date: new Date().toISOString(),
+          by: profile?.full_name || 'Solver Officer',
+          color: isResolved ? 'bg-green-500' : 'bg-primary-500'
+        }
+      ]
+
+      const updates = {
+        status: officerStatus,
+        resolution_notes: resolutionNotes,
+        proof_image_url: proofUrl || null,
+        activity: newActivity
+      }
+
+      await complaintService.update(id, updates)
+
+      setComplaint(prev => ({
+        ...prev,
+        ...updates
+      }))
+      setActivity(newActivity)
+      alert(`Resolution status updated successfully to: ${officerStatus}`)
+    } catch (err) {
+      console.error('Failed to update resolution:', err)
+      alert('Failed to update resolution details. Please try again.')
+    } finally {
+      setSubmittingResolution(false)
+    }
+  }
 
   const handleComment = async () => {
     if (!comment.trim()) return
@@ -141,6 +247,22 @@ export default function ComplaintDetailPage() {
           </div>
         </div>
 
+        {complaint.proof_image_url && (
+          <div className="mt-5 p-4 rounded-xl border border-green-500/20 bg-green-500/5 space-y-3">
+            <h3 className="text-xs font-bold text-green-700 dark:text-green-400 flex items-center gap-1.5">
+              <CheckCircle className="w-4 h-4" /> Official Resolution Proof
+            </h3>
+            {complaint.resolution_notes && (
+              <p className="text-sm text-[var(--text-secondary)] italic">
+                "{complaint.resolution_notes}"
+              </p>
+            )}
+            <div className="rounded-xl overflow-hidden border border-[var(--border-color)] max-w-md">
+              <img src={complaint.proof_image_url} alt="Official Proof" className="w-full h-auto object-cover max-h-72" />
+            </div>
+          </div>
+        )}
+
         {/* Vote */}
         <div className="flex items-center gap-4 mt-5 pt-4 border-t border-[var(--border-color)]">
           <button
@@ -163,6 +285,125 @@ export default function ComplaintDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* MP Assignment Panel */}
+      {(profile?.role === 'mp' || profile?.role === 'admin') && (
+        <Card className="border-l-4 border-amber-500 shadow-md">
+          <CardHeader className="flex items-center gap-2">
+            <UserCheck className="w-5 h-5 text-amber-500" />
+            <CardTitle>Assign Solver Officer</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {complaint.assigned_officer_name ? (
+              <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs flex items-center justify-between">
+                <span>Current Assignment: <strong>{complaint.assigned_officer_name}</strong></span>
+                <Badge color="primary">Assigned</Badge>
+              </div>
+            ) : (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 rounded-xl text-xs">
+                ⚠️ This complaint is currently unassigned. Please choose an officer below to direct the resolution.
+              </div>
+            )}
+            <div className="flex gap-2">
+              <select
+                value={selectedOfficerId}
+                onChange={e => setSelectedOfficerId(e.target.value)}
+                className="input-base text-sm py-2"
+              >
+                <option value="">Select Solver Officer...</option>
+                {officers.map(o => (
+                  <option key={o.id} value={o.id}>{o.full_name} ({o.department || 'Officer'})</option>
+                ))}
+              </select>
+              <Button
+                onClick={handleAssignOfficer}
+                loading={submittingAssignment}
+                disabled={!selectedOfficerId}
+                size="sm"
+              >
+                Assign Officer
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Solver Officer Resolution Panel */}
+      {(profile?.role === 'officer' && complaint.assigned_officer_id === (user?.uid || user?.id)) && (
+        <Card className="border-l-4 border-green-500 shadow-md">
+          <CardHeader className="flex items-center gap-2">
+            <FolderKanban className="w-5 h-5 text-green-500" />
+            <CardTitle>Update Resolution Status & Proof</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-[var(--text-secondary)] block mb-1">Status</label>
+                <select
+                  value={officerStatus}
+                  onChange={e => setOfficerStatus(e.target.value)}
+                  className="input-base text-sm"
+                >
+                  <option value="in_progress">In Progress</option>
+                  <option value="resolved">Resolved</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[var(--text-secondary)] block mb-1">Proof Image URL</label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={proofUrl}
+                    onChange={e => setProofUrl(e.target.value)}
+                    placeholder="Paste public image link..."
+                    className="input-base text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setProofUrl('https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=600&q=80')}
+                    className="shrink-0 text-xs px-2 animate-pulse"
+                  >
+                    Use Demo Photo
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-[var(--text-secondary)] block mb-1">Resolution Notes</label>
+              <textarea
+                value={resolutionNotes}
+                onChange={e => setResolutionNotes(e.target.value)}
+                placeholder="Describe action taken, resources used, or comments..."
+                rows={3}
+                className="input-base text-sm"
+              />
+            </div>
+
+            {proofUrl && (
+              <div className="relative rounded-xl overflow-hidden border border-[var(--border-color)] h-32 w-48">
+                <img src={proofUrl} alt="Proof preview" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => setProofUrl('')}
+                  className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            <Button
+              onClick={handleUpdateResolution}
+              loading={submittingResolution}
+              size="sm"
+            >
+              Submit Resolution Details
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Activity Timeline */}
       <Card>

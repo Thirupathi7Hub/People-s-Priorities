@@ -440,6 +440,19 @@ export const complaintService = {
     return { data: list, count: list.length }
   },
 
+  async getAssigned(officerId, params = {}) {
+    if (!isFirebaseConfigured) {
+      const res = await this.getAll(params)
+      res.data = res.data.filter(c => c.assigned_officer_id === officerId)
+      return res
+    }
+    const col = collection(db, 'complaints')
+    const q = query(col, where('assigned_officer_id', '==', officerId), orderBy('created_at', 'desc'))
+    const snap = await getDocs(q)
+    const list = snap.docs.map(d => d.data())
+    return { data: list, count: list.length }
+  },
+
   async update(id, updates) {
     const updatedFields = { ...updates, updated_at: new Date().toISOString() }
 

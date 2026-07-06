@@ -1,108 +1,217 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { FileText, CheckCircle, Clock, FolderKanban, ArrowRight } from 'lucide-react'
+import { FileText, CheckCircle, Clock, FolderKanban, ArrowRight, Award, TrendingUp } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card'
 import { StatusBadge } from '../../components/ui/Badge'
 import { formatRelativeTime } from '../../utils'
 import { useAuth } from '../../contexts/AuthContext'
-
-const assignedComplaints = [
-  { id: 1, title: 'Broken water pipe on Civil Lines', status: 'open', priority: 'high', citizen: 'Amita Singh', created_at: '2024-01-15T10:00:00Z' },
-  { id: 2, title: 'Transformer failure — Block C', status: 'in_progress', priority: 'critical', citizen: 'Rohit Mehta', created_at: '2024-01-14T14:00:00Z' },
-  { id: 3, title: 'Park maintenance request', status: 'pending', priority: 'low', citizen: 'Priya Nair', created_at: '2024-01-13T09:00:00Z' },
-  { id: 4, title: 'School building repair needed', status: 'in_progress', priority: 'medium', citizen: 'Arjun Patel', created_at: '2024-01-12T11:00:00Z' },
-]
-
-const weeklyData = [
-  { day: 'Mon', assigned: 8, resolved: 6 },
-  { day: 'Tue', assigned: 12, resolved: 9 },
-  { day: 'Wed', assigned: 7, resolved: 7 },
-  { day: 'Thu', assigned: 15, resolved: 11 },
-  { day: 'Fri', assigned: 10, resolved: 8 },
-  { day: 'Sat', assigned: 5, resolved: 5 },
-]
+import { complaintService } from '../../services/api'
+import { useState, useEffect } from 'react'
 
 export default function OfficerDashboard() {
-  const { profile } = useAuth()
+  const { user, profile } = useAuth()
   const firstName = profile?.full_name?.split(' ')[0] || 'Officer'
+  const [complaints, setComplaints] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const uid = user?.uid || user?.id
+    if (!uid) return
+
+    let active = true
+    setLoading(true)
+
+    complaintService.getAssigned(uid)
+      .then(res => {
+        if (!active) return
+        setComplaints(res.data || [])
+      })
+      .catch(err => console.error('Failed to load assigned complaints:', err))
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [user])
+
+  const totalAssigned = complaints.length
+  const pendingCount = complaints.filter(c => c.status === 'pending').length
+  const inProgressCount = complaints.filter(c => c.status === 'in_progress').length
+  const resolvedCount = complaints.filter(c => c.status === 'resolved' || c.status === 'closed').length
+  const resolutionRate = totalAssigned === 0 ? 0 : Math.round((resolvedCount / totalAssigned) * 100)
+
+  // Category chart data
+  const categoryCounts = {}
+  complaints.forEach(c => {
+    const cat = c.categories?.name || c.category || 'Other'
+    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1
+  })
+  const chartData = Object.keys(categoryCounts).map(name => ({
+    name,
+    Issues: categoryCounts[name]
+  }))
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-[var(--text-primary)]">
             Officer Dashboard — {firstName}
           </h1>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">Manage assigned complaints and projects</p>
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
+            Department: {profile?.department || 'Civil Solver'} · Handle your assigned duties
+          </p>
         </div>
       </div>
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { icon: FileText, label: 'Assigned', value: '47', color: 'from-blue-500 to-cyan-500' },
-          { icon: Clock, label: 'Pending', value: '12', color: 'from-amber-500 to-orange-500' },
-          { icon: FolderKanban, label: 'In Progress', value: '23', color: 'from-primary-500 to-violet-500' },
-          { icon: CheckCircle, label: 'Resolved', value: '156', color: 'from-green-500 to-emerald-500' },
-        ].map((s, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-            <div className="card p-5">
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-3`}>
-                <s.icon className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-2xl font-extrabold text-[var(--text-primary)]">{s.value}</div>
-              <div className="text-xs text-[var(--text-muted)] mt-1">{s.label}</div>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <div className="card p-5 bg-[var(--bg-card)] border border-[var(--border-color)]">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-3">
+              <FileText className="w-5 h-5 text-white" />
             </div>
-          </motion.div>
-        ))}
+            <div className="text-2xl font-extrabold text-[var(--text-primary)]">{totalAssigned}</div>
+            <div className="text-xs text-[var(--text-muted)] mt-1">Total Assigned</div>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <div className="card p-5 bg-[var(--bg-card)] border border-[var(--border-color)]">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mb-3">
+              <Clock className="w-5 h-5 text-white" />
+            </div>
+            <div className="text-2xl font-extrabold text-[var(--text-primary)]">{pendingCount}</div>
+            <div className="text-xs text-[var(--text-muted)] mt-1">Pending</div>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <div className="card p-5 bg-[var(--bg-card)] border border-[var(--border-color)]">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center mb-3">
+              <FolderKanban className="w-5 h-5 text-white" />
+            </div>
+            <div className="text-2xl font-extrabold text-[var(--text-primary)]">{inProgressCount}</div>
+            <div className="text-xs text-[var(--text-muted)] mt-1">In Progress</div>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <div className="card p-5 bg-[var(--bg-card)] border border-[var(--border-color)]">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-3">
+              <CheckCircle className="w-5 h-5 text-white" />
+            </div>
+            <div className="text-2xl font-extrabold text-[var(--text-primary)]">{resolvedCount}</div>
+            <div className="text-xs text-[var(--text-muted)] mt-1">Resolved</div>
+          </div>
+        </motion.div>
       </div>
 
-      <Card>
-        <CardHeader><CardTitle>Weekly Activity</CardTitle></CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={weeklyData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-              <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', fontSize: '12px' }} />
-              <Bar dataKey="assigned" fill="#6366f1" radius={[4, 4, 0, 0]} name="Assigned" />
-              <Bar dataKey="resolved" fill="#22c55e" radius={[4, 4, 0, 0]} name="Resolved" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Personal Performance Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-1 border-l-4 border-emerald-500 shadow-md">
+          <CardHeader className="flex items-center gap-2">
+            <Award className="w-5 h-5 text-emerald-500 animate-bounce" />
+            <CardTitle>Personal Performance Stats</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center p-6 space-y-4">
+            <div className="relative w-32 h-32 flex items-center justify-center">
+              {/* Circular progress background */}
+              <svg className="w-full h-full transform -rotate-90">
+                <circle cx="64" cy="64" r="54" stroke="var(--border-color)" strokeWidth="8" fill="transparent" />
+                <circle cx="64" cy="64" r="54" stroke="#10b981" strokeWidth="8" fill="transparent"
+                  strokeDasharray={2 * Math.PI * 54}
+                  strokeDashoffset={2 * Math.PI * 54 * (1 - resolutionRate / 100)}
+                  strokeLinecap="round"
+                  className="transition-all duration-700 ease-out"
+                />
+              </svg>
+              <div className="absolute text-center">
+                <span className="text-2xl font-black text-[var(--text-primary)]">{resolutionRate}%</span>
+                <p className="text-[10px] text-[var(--text-muted)] mt-0.5 font-medium">Resolution Rate</p>
+              </div>
+            </div>
+            <div className="w-full text-center space-y-1">
+              <p className="text-xs font-semibold text-[var(--text-secondary)]">Excellent Work, {firstName}!</p>
+              <p className="text-[10px] text-[var(--text-muted)]">
+                You resolved {resolvedCount} out of {totalAssigned} assigned complaints.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Assigned Complaints by Category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {chartData.length === 0 ? (
+              <div className="h-[200px] flex items-center justify-center text-[var(--text-secondary)] text-sm">
+                No active complaints to display charts.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', fontSize: '12px' }} />
+                  <Bar dataKey="Issues" fill="#6366f1" radius={[4, 4, 0, 0]} name="Issues Assigned" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Assigned complaints table/list */}
       <Card>
         <CardHeader>
-          <CardTitle>Assigned Complaints</CardTitle>
-          <Link to="/dashboard/officer/complaints" className="text-xs text-primary-600 font-medium flex items-center gap-1">
-            View all <ArrowRight className="w-3 h-3" />
+          <CardTitle>Assigned Complaints list</CardTitle>
+          <Link to="/dashboard/officer/complaints" className="text-xs text-primary-600 font-medium flex items-center gap-1 hover:gap-2 transition-all">
+            View all assigned <ArrowRight className="w-3 h-3" />
           </Link>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-[var(--border-color)]">
-            {assignedComplaints.map((c, i) => (
-              <Link key={c.id} to={`/dashboard/officer/complaints/${c.id}`}>
-                <motion.div
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.08 }}
-                  className="px-5 py-4 flex items-center gap-4 hover:bg-[var(--bg-tertiary)] transition-colors"
-                >
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                    c.priority === 'critical' ? 'bg-red-500' :
-                    c.priority === 'high' ? 'bg-orange-500' :
-                    c.priority === 'medium' ? 'bg-amber-500' : 'bg-green-500'
-                  }`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{c.title}</p>
-                    <p className="text-xs text-[var(--text-muted)] mt-0.5">{c.citizen} · {formatRelativeTime(c.created_at)}</p>
-                  </div>
-                  <StatusBadge status={c.status} />
-                </motion.div>
-              </Link>
-            ))}
+            {loading ? (
+              <div className="p-8 text-center text-[var(--text-secondary)] text-sm">
+                Loading assigned complaints...
+              </div>
+            ) : complaints.length === 0 ? (
+              <div className="p-8 text-center text-[var(--text-secondary)] text-sm">
+                No complaints currently assigned to you. Good job!
+              </div>
+            ) : (
+              complaints.map((c, i) => (
+                <Link key={c.id} to={`/dashboard/officer/complaints/${c.id}`}>
+                  <motion.div
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="px-5 py-4 flex items-center justify-between hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                  >
+                    <div className="min-w-0 flex-1 mr-4">
+                      <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{c.title}</p>
+                      <p className="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-2">
+                        <span>{c.categories?.name || c.category || 'Other'}</span>
+                        <span>·</span>
+                        <span>{c.location_text || c.location || 'Constituency'}</span>
+                        <span>·</span>
+                        <span>{formatRelativeTime(c.created_at)}</span>
+                      </p>
+                    </div>
+                    <div className="shrink-0">
+                      <StatusBadge status={c.status} />
+                    </div>
+                  </motion.div>
+                </Link>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
