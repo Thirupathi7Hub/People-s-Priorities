@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { ProtectedRoute, PublicOnlyRoute } from './ProtectedRoute'
 import { PublicLayout } from '../components/layouts/PublicLayout'
 import DashboardLayout from '../components/layouts/DashboardLayout'
@@ -25,18 +25,22 @@ const MPDashboard = lazy(() => import('../pages/dashboards/MPDashboard'))
 const OfficerDashboard = lazy(() => import('../pages/dashboards/OfficerDashboard'))
 const AdminDashboard = lazy(() => import('../pages/dashboards/AdminDashboard'))
 
-// Common pages
+// Shared pages
 const ComplaintsListPage = lazy(() => import('../pages/complaints/ComplaintsListPage'))
 const NewComplaintPage = lazy(() => import('../pages/complaints/NewComplaintPage'))
 const ComplaintDetailPage = lazy(() => import('../pages/complaints/ComplaintDetailPage'))
-const ProjectsPage = lazy(() => import('../pages/ProjectsPage'))
-const BudgetPage = lazy(() => import('../pages/BudgetPage'))
-const ReportsPage = lazy(() => import('../pages/ReportsPage'))
 const MapViewPage = lazy(() => import('../pages/MapViewPage'))
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage'))
 const ProfilePage = lazy(() => import('../pages/ProfilePage'))
 const SettingsPage = lazy(() => import('../pages/SettingsPage'))
-const SchemesPage = lazy(() => import('../pages/SchemesPage'))
+const ReportsPage = lazy(() => import('../pages/ReportsPage'))
+
+// MP-specific pages
+const MPAnalyticsPage = lazy(() => import('../pages/mp/MPAnalyticsPage'))
+const MPAssignPage = lazy(() => import('../pages/mp/MPAssignPage'))
+
+// Officer-specific pages
+const OfficerPerformancePage = lazy(() => import('../pages/officer/OfficerPerformancePage'))
 
 // Admin pages
 const AdminUsersPage = lazy(() => import('../pages/admin/AdminUsersPage'))
@@ -59,7 +63,7 @@ const wrap = (component, roles) => (
 )
 
 const router = createBrowserRouter([
-  // Public routes
+  // ─── Public ────────────────────────────────────────────────────────────────
   {
     path: '/',
     element: <PublicLayout />,
@@ -71,30 +75,20 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Auth routes (redirect if logged in)
+  // ─── Auth ──────────────────────────────────────────────────────────────────
   {
     path: '/auth',
     children: [
-      {
-        path: 'login',
-        element: <PublicOnlyRoute><Suspense fallback={<div />}><LoginPage /></Suspense></PublicOnlyRoute>,
-      },
-      {
-        path: 'register',
-        element: <PublicOnlyRoute><Suspense fallback={<div />}><RegisterPage /></Suspense></PublicOnlyRoute>,
-      },
-      {
-        path: 'forgot-password',
-        element: <Suspense fallback={<div />}><ForgotPasswordPage /></Suspense>,
-      },
-      {
-        path: 'callback',
-        element: <Suspense fallback={<div />}><AuthCallbackPage /></Suspense>,
-      },
+      { path: 'login', element: <PublicOnlyRoute><Suspense fallback={<div />}><LoginPage /></Suspense></PublicOnlyRoute> },
+      { path: 'register', element: <PublicOnlyRoute><Suspense fallback={<div />}><RegisterPage /></Suspense></PublicOnlyRoute> },
+      { path: 'forgot-password', element: <Suspense fallback={<div />}><ForgotPasswordPage /></Suspense> },
+      { path: 'callback', element: <Suspense fallback={<div />}><AuthCallbackPage /></Suspense> },
     ],
   },
 
-  // Citizen Dashboard
+  // ─── CITIZEN ───────────────────────────────────────────────────────────────
+  // Features: Register/Login | Submit complaint (text+image) | Category |
+  //           Share location | Track status | View resolved | Notifications
   {
     path: '/dashboard/citizen',
     element: wrap(<DashboardLayout />, [ROLES.CITIZEN, ROLES.ADMIN]),
@@ -103,8 +97,6 @@ const router = createBrowserRouter([
       { path: 'complaints', element: <Suspense fallback={<Loader />}><ComplaintsListPage role="citizen" /></Suspense> },
       { path: 'complaints/new', element: <Suspense fallback={<Loader />}><NewComplaintPage /></Suspense> },
       { path: 'complaints/:id', element: <Suspense fallback={<Loader />}><ComplaintDetailPage /></Suspense> },
-      { path: 'projects', element: <Suspense fallback={<Loader />}><ProjectsPage /></Suspense> },
-      { path: 'schemes', element: <Suspense fallback={<Loader />}><SchemesPage /></Suspense> },
       { path: 'map', element: <Suspense fallback={<Loader />}><MapViewPage /></Suspense> },
       { path: 'notifications', element: <Suspense fallback={<Loader />}><NotificationsPage /></Suspense> },
       { path: 'profile', element: <Suspense fallback={<Loader />}><ProfilePage /></Suspense> },
@@ -112,7 +104,9 @@ const router = createBrowserRouter([
     ],
   },
 
-  // MP Dashboard
+  // ─── MP / MINISTER ─────────────────────────────────────────────────────────
+  // Features: All constituency complaints | AI Top Priorities | Heatmap |
+  //           Category analytics | Assign to Officers | Progress | PDF Report
   {
     path: '/dashboard/mp',
     element: wrap(<DashboardLayout />, [ROLES.MP, ROLES.ADMIN]),
@@ -120,18 +114,20 @@ const router = createBrowserRouter([
       { index: true, element: <Suspense fallback={<Loader />}><MPDashboard /></Suspense> },
       { path: 'complaints', element: <Suspense fallback={<Loader />}><ComplaintsListPage role="mp" /></Suspense> },
       { path: 'complaints/:id', element: <Suspense fallback={<Loader />}><ComplaintDetailPage /></Suspense> },
-      { path: 'projects', element: <Suspense fallback={<Loader />}><ProjectsPage /></Suspense> },
-      { path: 'budget', element: <Suspense fallback={<Loader />}><BudgetPage /></Suspense> },
-      { path: 'reports', element: <Suspense fallback={<Loader />}><ReportsPage /></Suspense> },
-      { path: 'constituencies', element: <Suspense fallback={<Loader />}><AdminConstituenciesPage /></Suspense> },
+      { path: 'priorities', element: <Suspense fallback={<Loader />}><MPDashboard /></Suspense> },
       { path: 'map', element: <Suspense fallback={<Loader />}><MapViewPage /></Suspense> },
+      { path: 'analytics', element: <Suspense fallback={<Loader />}><MPAnalyticsPage /></Suspense> },
+      { path: 'assign', element: <Suspense fallback={<Loader />}><MPAssignPage /></Suspense> },
+      { path: 'reports', element: <Suspense fallback={<Loader />}><ReportsPage /></Suspense> },
       { path: 'notifications', element: <Suspense fallback={<Loader />}><NotificationsPage /></Suspense> },
       { path: 'profile', element: <Suspense fallback={<Loader />}><ProfilePage /></Suspense> },
       { path: 'settings', element: <Suspense fallback={<Loader />}><SettingsPage /></Suspense> },
     ],
   },
 
-  // Officer Dashboard
+  // ─── SOLVER OFFICER ────────────────────────────────────────────────────────
+  // Features: View assigned complaints | Update status | Upload proof images |
+  //           Mark resolved | Add notes | Personal performance stats
   {
     path: '/dashboard/officer',
     element: wrap(<DashboardLayout />, [ROLES.OFFICER, ROLES.ADMIN]),
@@ -139,15 +135,15 @@ const router = createBrowserRouter([
       { index: true, element: <Suspense fallback={<Loader />}><OfficerDashboard /></Suspense> },
       { path: 'complaints', element: <Suspense fallback={<Loader />}><ComplaintsListPage role="officer" /></Suspense> },
       { path: 'complaints/:id', element: <Suspense fallback={<Loader />}><ComplaintDetailPage /></Suspense> },
-      { path: 'projects', element: <Suspense fallback={<Loader />}><ProjectsPage /></Suspense> },
-      { path: 'reports', element: <Suspense fallback={<Loader />}><ReportsPage /></Suspense> },
+      { path: 'update', element: <Suspense fallback={<Loader />}><ComplaintsListPage role="officer" /></Suspense> },
+      { path: 'performance', element: <Suspense fallback={<Loader />}><OfficerPerformancePage /></Suspense> },
       { path: 'notifications', element: <Suspense fallback={<Loader />}><NotificationsPage /></Suspense> },
       { path: 'profile', element: <Suspense fallback={<Loader />}><ProfilePage /></Suspense> },
       { path: 'settings', element: <Suspense fallback={<Loader />}><SettingsPage /></Suspense> },
     ],
   },
 
-  // Admin Dashboard
+  // ─── ADMIN ─────────────────────────────────────────────────────────────────
   {
     path: '/dashboard/admin',
     element: wrap(<DashboardLayout />, [ROLES.ADMIN]),
@@ -156,8 +152,6 @@ const router = createBrowserRouter([
       { path: 'users', element: <Suspense fallback={<Loader />}><AdminUsersPage /></Suspense> },
       { path: 'complaints', element: <Suspense fallback={<Loader />}><ComplaintsListPage role="admin" /></Suspense> },
       { path: 'complaints/:id', element: <Suspense fallback={<Loader />}><ComplaintDetailPage /></Suspense> },
-      { path: 'projects', element: <Suspense fallback={<Loader />}><ProjectsPage /></Suspense> },
-      { path: 'budget', element: <Suspense fallback={<Loader />}><BudgetPage /></Suspense> },
       { path: 'departments', element: <Suspense fallback={<Loader />}><AdminDepartmentsPage /></Suspense> },
       { path: 'constituencies', element: <Suspense fallback={<Loader />}><AdminConstituenciesPage /></Suspense> },
       { path: 'categories', element: <Suspense fallback={<Loader />}><AdminCategoriesPage /></Suspense> },
@@ -167,7 +161,7 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Unauthorized
+  // ─── Misc ──────────────────────────────────────────────────────────────────
   {
     path: '/unauthorized',
     element: (
@@ -180,8 +174,6 @@ const router = createBrowserRouter([
       </div>
     ),
   },
-
-  // 404
   { path: '*', element: <Suspense fallback={<div />}><NotFoundPage /></Suspense> },
 ])
 

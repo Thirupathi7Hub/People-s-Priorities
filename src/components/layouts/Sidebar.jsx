@@ -5,7 +5,8 @@ import {
   LayoutDashboard, FileText, FolderKanban, PieChart, Bell,
   Settings, User, LogOut, ChevronLeft, ChevronRight,
   Users, MapPin, Building2, Tag, BarChart3, Wallet,
-  Shield, BookOpen, Globe, Menu, X
+  Shield, BookOpen, Globe, Menu, X, Brain, Flame, UserCheck,
+  CheckCircle, TrendingUp, Star, ClipboardList, UploadCloud
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -17,9 +18,8 @@ import Avatar from '../ui/Avatar'
 const navConfig = {
   [ROLES.CITIZEN]: [
     { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard/citizen' },
-    { label: 'My Complaints', icon: FileText, to: '/dashboard/citizen/complaints' },
-    { label: 'Projects', icon: FolderKanban, to: '/dashboard/citizen/projects' },
-    { label: 'Schemes', icon: BookOpen, to: '/dashboard/citizen/schemes' },
+    { label: 'Submit Complaint', icon: FileText, to: '/dashboard/citizen/complaints/new' },
+    { label: 'My Complaints', icon: ClipboardList, to: '/dashboard/citizen/complaints' },
     { label: 'Map View', icon: Globe, to: '/dashboard/citizen/map' },
     { label: 'Notifications', icon: Bell, to: '/dashboard/citizen/notifications' },
     { label: 'Profile', icon: User, to: '/dashboard/citizen/profile' },
@@ -27,20 +27,21 @@ const navConfig = {
   ],
   [ROLES.MP]: [
     { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard/mp' },
-    { label: 'Complaints', icon: FileText, to: '/dashboard/mp/complaints' },
-    { label: 'Projects', icon: FolderKanban, to: '/dashboard/mp/projects' },
-    { label: 'Budget', icon: Wallet, to: '/dashboard/mp/budget' },
-    { label: 'Reports', icon: BarChart3, to: '/dashboard/mp/reports' },
-    { label: 'Constituencies', icon: MapPin, to: '/dashboard/mp/constituencies' },
+    { label: 'All Complaints', icon: FileText, to: '/dashboard/mp/complaints' },
+    { label: 'AI Priorities', icon: Brain, to: '/dashboard/mp/priorities' },
+    { label: 'Heatmap', icon: Flame, to: '/dashboard/mp/map' },
+    { label: 'Analytics', icon: BarChart3, to: '/dashboard/mp/analytics' },
+    { label: 'Assign Officers', icon: UserCheck, to: '/dashboard/mp/assign' },
+    { label: 'Reports', icon: PieChart, to: '/dashboard/mp/reports' },
     { label: 'Notifications', icon: Bell, to: '/dashboard/mp/notifications' },
     { label: 'Profile', icon: User, to: '/dashboard/mp/profile' },
     { label: 'Settings', icon: Settings, to: '/dashboard/mp/settings' },
   ],
   [ROLES.OFFICER]: [
     { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard/officer' },
-    { label: 'Assigned Cases', icon: FileText, to: '/dashboard/officer/complaints' },
-    { label: 'Projects', icon: FolderKanban, to: '/dashboard/officer/projects' },
-    { label: 'Reports', icon: PieChart, to: '/dashboard/officer/reports' },
+    { label: 'Assigned Cases', icon: ClipboardList, to: '/dashboard/officer/complaints' },
+    { label: 'Update Status', icon: CheckCircle, to: '/dashboard/officer/update' },
+    { label: 'Performance', icon: TrendingUp, to: '/dashboard/officer/performance' },
     { label: 'Notifications', icon: Bell, to: '/dashboard/officer/notifications' },
     { label: 'Profile', icon: User, to: '/dashboard/officer/profile' },
     { label: 'Settings', icon: Settings, to: '/dashboard/officer/settings' },
@@ -49,8 +50,6 @@ const navConfig = {
     { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard/admin' },
     { label: 'Users', icon: Users, to: '/dashboard/admin/users' },
     { label: 'Complaints', icon: FileText, to: '/dashboard/admin/complaints' },
-    { label: 'Projects', icon: FolderKanban, to: '/dashboard/admin/projects' },
-    { label: 'Budget', icon: Wallet, to: '/dashboard/admin/budget' },
     { label: 'Departments', icon: Building2, to: '/dashboard/admin/departments' },
     { label: 'Constituencies', icon: MapPin, to: '/dashboard/admin/constituencies' },
     { label: 'Categories', icon: Tag, to: '/dashboard/admin/categories' },
