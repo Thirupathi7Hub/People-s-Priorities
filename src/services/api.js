@@ -406,15 +406,17 @@ export const complaintService = {
     }
 
     const col = collection(db, 'complaints')
-    let q = query(col, orderBy('created_at', 'desc'))
-
-    if (status) q = query(q, where('status', '==', status))
-    if (category_id) q = query(q, where('category_id', '==', Number(category_id)))
-    if (priority) q = query(q, where('priority', '==', priority))
+    // Only use single-field orderBy to avoid composite index requirement.
+    // Additional filters applied client-side.
+    const q = query(col, orderBy('created_at', 'desc'))
 
     const snap = await getDocs(q)
-    let list = snap.docs.map(d => d.data())
+    let list = snap.docs.map(d => ({ ...d.data(), id: d.id }))
 
+    // Client-side filters
+    if (status) list = list.filter(c => c.status === status)
+    if (category_id) list = list.filter(c => Number(c.category_id) === Number(category_id))
+    if (priority) list = list.filter(c => c.priority === priority)
     if (search) {
       list = list.filter(c => c.title?.toLowerCase().includes(search.toLowerCase()) || c.description?.toLowerCase().includes(search.toLowerCase()))
     }
@@ -433,12 +435,30 @@ export const complaintService = {
       res.data = res.data.filter(c => c.citizen_id === userId)
       return res
     }
-    const col = collection(db, 'complaints')
-    const q = query(col, where('citizen_id', '==', userId), orderBy('created_at', 'desc'))
-    const snap = await getDocs(q)
-    const list = snap.docs.map(d => d.data())
-    return { data: list, count: list.length }
+
+    // Query only by citizen_id — no orderBy to avoid composite index requirement.
+    // Sort client-side instead.
+    try {
+      const col = collection(db, 'complaints')
+      const q = query(col, where('citizen_id', '==', userId))
+      const snap = await getDocs(q)
+      const list = snap.docs
+        .map(d => ({
+          ...d.data(),
+          id: d.id,
+          categories: CATEGORIES.find(cat => cat.id === Number(d.data().category_id)) || { name: 'Other', color: '#6366f1' }
+        }))
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      return { data: list, count: list.length }
+    } catch (err) {
+      // Fallback: fetch all and filter client-side
+      console.warn('getMine primary query failed, falling back to getAll:', err.message)
+      const res = await this.getAll(params)
+      const filtered = (res.data || []).filter(c => c.citizen_id === userId)
+      return { data: filtered, count: filtered.length }
+    }
   },
+
 
   async update(id, updates) {
     const updatedFields = { ...updates, updated_at: new Date().toISOString() }
