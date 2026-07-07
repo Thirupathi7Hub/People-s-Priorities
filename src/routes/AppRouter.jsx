@@ -41,6 +41,7 @@ const MPAssignPage = lazy(() => import('../pages/mp/MPAssignPage'))
 
 // Officer-specific pages
 const OfficerPerformancePage = lazy(() => import('../pages/officer/OfficerPerformancePage'))
+const OfficerUpdatePage = lazy(() => import('../pages/officer/OfficerUpdatePage'))
 
 // Admin pages
 const AdminUsersPage = lazy(() => import('../pages/admin/AdminUsersPage'))
@@ -135,7 +136,7 @@ const router = createBrowserRouter([
       { index: true, element: <Suspense fallback={<Loader />}><OfficerDashboard /></Suspense> },
       { path: 'complaints', element: <Suspense fallback={<Loader />}><ComplaintsListPage role="officer" /></Suspense> },
       { path: 'complaints/:id', element: <Suspense fallback={<Loader />}><ComplaintDetailPage /></Suspense> },
-      { path: 'update', element: <Suspense fallback={<Loader />}><ComplaintsListPage role="officer" /></Suspense> },
+      { path: 'update', element: <Suspense fallback={<Loader />}><OfficerUpdatePage /></Suspense> },
       { path: 'performance', element: <Suspense fallback={<Loader />}><OfficerPerformancePage /></Suspense> },
       { path: 'notifications', element: <Suspense fallback={<Loader />}><NotificationsPage /></Suspense> },
       { path: 'profile', element: <Suspense fallback={<Loader />}><ProfilePage /></Suspense> },
