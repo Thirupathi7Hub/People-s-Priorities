@@ -168,9 +168,9 @@ npm run build
 
 | Role | Email | Password |
 |---|---|---|
-| 👤 Citizen | citizen@priorities.gov.in | Demo@1234 |
-| 🏛️ MP | mp@priorities.gov.in | Demo@1234 |
-| 🛠️ Officer | officer@priorities.gov.in | Demo@1234 |
+| 👤 Citizen | citizen@priorities.gov.in | password123 |
+| 🏛️ MP | mp@priorities.gov.in | password123 |
+| 🛠️ Officer | officer@priorities.gov.in | password123 |
 
 > ℹ️ Demo accounts are auto-provisioned on first login.
 
